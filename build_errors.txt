@@ -1,0 +1,317 @@
+﻿
+> mar-chat@1.0.0 build
+> next build
+
+   ▲ Next.js 14.1.0
+   - Environments: .env
+
+   Creating an optimized production build ...
+node.exe : <w> [webpac
+k.cache.PackFileCacheS
+trategy] Skipped not 
+serializable cache 
+item 'Compilation/modu
+les|C:\Users\majdk\Dow
+nloads\marchat\node_mo
+dules\next\dist\build\
+webpack\loaders\css-lo
+ader\src\index.js??rul
+eSet[1].rules[11].oneO
+f[12].use[2]!C:\Users\
+majdk\Downloads\marcha
+t\node_modules\next\di
+st\build\webpack\loade
+rs\postcss-loader\src\
+index.js??ruleSet[1].r
+ules[11].oneOf[12].use
+[3]!C:\Users\majdk\Dow
+nloads\marchat\app\glo
+bals.css': No 
+serializer registered 
+for PostCSSSyntaxError
+At line:1 char:1
++ & "C:\Program Files\
+nodejs/node.exe" 
+"C:\Program 
+Files\nodejs/node_mo 
+...
++ ~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~
+~~~~~
+    + CategoryInfo    
+          : NotSpeci  
+  fied: (<w> [webpa   
+ ck.ca...tCSSSynta    
+xError:String) []    
+, RemoteException
+    + FullyQualifiedE 
+   rrorId : NativeCo  
+  mmandError
+ 
+<w> while serializing 
+webpack/lib/cache/Pack
+FileCacheStrategy.Pack
+ContentItems -> webpac
+k/lib/NormalModule -> 
+webpack/lib/ModuleBuil
+dError -> 
+PostCSSSyntaxError
+Failed to compile.
+
+./app/globals.css:272:
+3
+Syntax error: C:\Users
+\majdk\Downloads\march
+at\app\globals.css 
+The `prose` class 
+does not exist. If 
+`prose` is a custom 
+class, make sure it 
+is defined within a 
+`@layer` directive.
+
+ [90m 270 | 
+[39m[90m/* Markdown 
+content styling 
+*/[39m
+ [90m 271 | [39m[33
+m.markdown-content[39
+m [33m{[39m
+[1m[31m>[39m[22m[
+90m 272 | [39m  
+[36m@apply[39m 
+prose prose-gray dark
+[33m:[39mprose-invert
+ max-w-none[33m;[39m
+ [90m     | [39m  
+[1m[31m^[39m[22m
+ [90m 273 | 
+[39m[33m}[39m
+ [90m 274 | [39m
+
+./app/globals.css
+Syntax error: C:\Users
+\majdk\Downloads\march
+at\app\globals.css 
+The `prose` class 
+does not exist. If 
+`prose` is a custom 
+class, make sure it 
+is defined within a 
+`@layer` directive. 
+(272:3)
+
+ [90m 270 | 
+[39m[90m/* Markdown 
+content styling 
+*/[39m
+ [90m 271 | [39m[33
+m.markdown-content[39
+m [33m{[39m
+[1m[31m>[39m[22m[
+90m 272 | [39m  
+[36m@apply[39m 
+prose prose-gray dark
+[33m:[39mprose-invert
+ max-w-none[33m;[39m
+ [90m     | [39m  
+[1m[31m^[39m[22m
+ [90m 273 | 
+[39m[33m}[39m
+ [90m 274 | [39m
+
+    at 
+tryRunOrWebpackError (
+C:\Users\majdk\Downloa
+ds\marchat\node_module
+s\next\dist\compiled\w
+ebpack\bundle5.js:28:3
+11563)
+    at __webpack_requi
+re_module__ (C:\Users\
+majdk\Downloads\marcha
+t\node_modules\next\di
+st\compiled\webpack\bu
+ndle5.js:28:131195)
+    at __nested_webpac
+k_require_153754__ (C:
+\Users\majdk\Downloads
+\marchat\node_modules\
+next\dist\compiled\web
+pack\bundle5.js:28:130
+634)
+    at C:\Users\majdk\
+Downloads\marchat\node
+_modules\next\dist\com
+piled\webpack\bundle5.
+js:28:131487
+    at symbolIterator 
+(C:\Users\majdk\Downlo
+ads\marchat\node_modul
+es\next\dist\compiled\
+neo-async\async.js:1:1
+4444)
+    at done (C:\Users\
+majdk\Downloads\marcha
+t\node_modules\next\di
+st\compiled\neo-async\
+async.js:1:14824)
+    at Hook.eval [as 
+callAsync] (eval at 
+create (C:\Users\majdk
+\Downloads\marchat\nod
+e_modules\next\dist\co
+mpiled\webpack\bundle5
+.js:13:28867), 
+<anonymous>:15:1)
+    at Hook.CALL_ASYNC
+_DELEGATE [as 
+_callAsync] (C:\Users\
+majdk\Downloads\marcha
+t\node_modules\next\di
+st\compiled\webpack\bu
+ndle5.js:13:26021)
+    at C:\Users\majdk\
+Downloads\marchat\node
+_modules\next\dist\com
+piled\webpack\bundle5.
+js:28:130354
+    at symbolIterator 
+(C:\Users\majdk\Downlo
+ads\marchat\node_modul
+es\next\dist\compiled\
+neo-async\async.js:1:1
+4402)
+-- inner error --
+Syntax error: C:\Users
+\majdk\Downloads\march
+at\app\globals.css 
+The `prose` class 
+does not exist. If 
+`prose` is a custom 
+class, make sure it 
+is defined within a 
+`@layer` directive. 
+(272:3)
+
+ [90m 270 | 
+[39m[90m/* Markdown 
+content styling 
+*/[39m
+ [90m 271 | [39m[33
+m.markdown-content[39
+m [33m{[39m
+[1m[31m>[39m[22m[
+90m 272 | [39m  
+[36m@apply[39m 
+prose prose-gray dark
+[33m:[39mprose-invert
+ max-w-none[33m;[39m
+ [90m     | [39m  
+[1m[31m^[39m[22m
+ [90m 273 | 
+[39m[33m}[39m
+ [90m 274 | [39m
+
+    at 
+Object.<anonymous> (C:
+\Users\majdk\Downloads
+\marchat\node_modules\
+next\dist\build\webpac
+k\loaders\css-loader\s
+rc\index.js??ruleSet[1
+].rules[11].oneOf[12].
+use[2]!C:\Users\majdk\
+Downloads\marchat\node
+_modules\next\dist\bui
+ld\webpack\loaders\pos
+tcss-loader\src\index.
+js??ruleSet[1].rules[1
+1].oneOf[12].use[3]!C:
+\Users\majdk\Downloads
+\marchat\app\globals.c
+ss:1:7)
+    at C:\Users\majdk\
+Downloads\marchat\node
+_modules\next\dist\com
+piled\webpack\bundle5.
+js:28:915116
+    at Hook.eval [as 
+call] (eval at create 
+(C:\Users\majdk\Downlo
+ads\marchat\node_modul
+es\next\dist\compiled\
+webpack\bundle5.js:13:
+28645), 
+<anonymous>:7:1)
+    at 
+Hook.CALL_DELEGATE 
+[as _call] (C:\Users\m
+ajdk\Downloads\marchat
+\node_modules\next\dis
+t\compiled\webpack\bun
+dle5.js:13:25915)
+    at C:\Users\majdk\
+Downloads\marchat\node
+_modules\next\dist\com
+piled\webpack\bundle5.
+js:28:131228
+    at 
+tryRunOrWebpackError (
+C:\Users\majdk\Downloa
+ds\marchat\node_module
+s\next\dist\compiled\w
+ebpack\bundle5.js:28:3
+11517)
+    at __webpack_requi
+re_module__ (C:\Users\
+majdk\Downloads\marcha
+t\node_modules\next\di
+st\compiled\webpack\bu
+ndle5.js:28:131195)
+    at __nested_webpac
+k_require_153754__ (C:
+\Users\majdk\Downloads
+\marchat\node_modules\
+next\dist\compiled\web
+pack\bundle5.js:28:130
+634)
+    at C:\Users\majdk\
+Downloads\marchat\node
+_modules\next\dist\com
+piled\webpack\bundle5.
+js:28:131487
+    at symbolIterator 
+(C:\Users\majdk\Downlo
+ads\marchat\node_modul
+es\next\dist\compiled\
+neo-async\async.js:1:1
+4444)
+
+Generated code for C:\
+Users\majdk\Downloads\
+marchat\node_modules\n
+ext\dist\build\webpack
+\loaders\css-loader\sr
+c\index.js??ruleSet[1]
+.rules[11].oneOf[12].u
+se[2]!C:\Users\majdk\D
+ownloads\marchat\node_
+modules\next\dist\buil
+d\webpack\loaders\post
+css-loader\src\index.j
+s??ruleSet[1].rules[11
+].oneOf[12].use[3]!C:\
+Users\majdk\Downloads\
+marchat\app\globals.cs
+s
+
+Import trace for 
+requested module:
+./app/globals.css
+
+
+> Build failed 
+because of webpack 
+errors

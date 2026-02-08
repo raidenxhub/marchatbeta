@@ -1,0 +1,238 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 0 0% 5%;
+    --mar-bg: #ffffff;
+    --mar-bg-secondary: #f5f5f0;
+    --mar-fg: #1a1a1a;
+    --mar-fg-muted: #555555;
+
+    --card: 0 0% 100%;
+    --card-foreground: 0 0% 5%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 0 0% 5%;
+
+    --primary: 60 30% 90%;
+    /* Beige */
+    --primary-foreground: 0 0% 5%;
+
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 5%;
+
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
+
+    --accent: 0 0% 96%;
+    --accent-foreground: 0 0% 5%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 98%;
+
+    --border: 0 0% 90%;
+    --input: 0 0% 90%;
+    --ring: 0 0% 5%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --mar-bg: #1e1e1c;
+    --mar-bg-secondary: #262624;
+    --mar-fg: #c1c0b5;
+    --mar-fg-muted: #8a8980;
+    --background: 0 0% 5%;
+    /* #0d0d0d is approx HSL 0 0% 5% */
+    --foreground: 60 30% 90%;
+    /* #f5f5dc is approx HSL 60 30% 92% */
+
+    --card: 0 0% 8%;
+    /* Slightly lighter than bg */
+    --card-foreground: 60 30% 90%;
+
+    --popover: 0 0% 8%;
+    --popover-foreground: 60 30% 90%;
+
+    --primary: 60 30% 90%;
+    /* #f5f5dc */
+    --primary-foreground: 0 0% 5%;
+
+    --secondary: 0 0% 12%;
+    --secondary-foreground: 60 30% 90%;
+
+    --muted: 0 0% 12%;
+    --muted-foreground: 0 0% 60%;
+
+    --accent: 0 0% 12%;
+    --accent-foreground: 60 30% 90%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 60 30% 90%;
+
+    --border: 0 0% 15%;
+    --input: 0 0% 15%;
+    --ring: 60 30% 90%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans;
+  }
+}
+
+/* Theme-aware body - next-themes adds "dark" class to html */
+html body {
+  font-family: var(--font-sans);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+/* Light mode - white background, dark text */
+html:not(.dark) body {
+  background-color: #ffffff;
+  color: #1a1a1a;
+}
+
+/* Dark mode - dark background, light text */
+html.dark body {
+  background-color: #1e1e1c;
+  color: #c1c0b5;
+}
+
+/* Chat font variants */
+[data-chat-font="sans"] .prose,
+[data-chat-font="sans"] [data-chat-content] {
+  font-family: var(--font-poppins), system-ui, sans-serif;
+}
+[data-chat-font="system"] .prose,
+[data-chat-font="system"] [data-chat-content] {
+  font-family: system-ui, -apple-system, sans-serif;
+}
+[data-chat-font="dyslexic"] .prose,
+[data-chat-font="dyslexic"] [data-chat-content] {
+  font-family: "OpenDyslexic", "Comic Sans MS", sans-serif;
+}
+
+.font-serif {
+  font-family: var(--font-serif);
+}
+
+.custom-scrollbar {
+  scroll-behavior: smooth;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #3d3d3a;
+  border-radius: 10px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: #4a4a47;
+}
+
+/* Hide scrollbar in input/textarea – scroll with mouse wheel */
+.scrollbar-hide {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Animations */
+@keyframes blink {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0;
+  }
+}
+
+.animate-blink {
+  animation: blink 1s step-end infinite;
+}
+
+@keyframes sparkle-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.animate-sparkle-spin {
+  animation: sparkle-spin 1.2s linear infinite;
+  transform-origin: center center;
+}
+
+/* Sparkle loader: always animate regardless of reduced-motion (user-facing loading cue) */
+@media (prefers-reduced-motion: reduce) {
+  .animate-sparkle-spin {
+    animation-duration: 1.2s !important;
+    animation-iteration-count: infinite !important;
+  }
+}
+
+/* Markdown Styles */
+.prose {
+  @apply text-foreground;
+}
+
+.prose pre {
+  @apply bg-secondary/50 border border-border/50 rounded-lg;
+}
+
+.prose code {
+  @apply text-primary font-mono bg-secondary/30 px-1 py-0.5 rounded-sm;
+}
+
+/* Reduce motion: respect user preference and app setting */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+[data-reduce-motion="true"] *:not(.animate-sparkle-spin),
+[data-reduce-motion="true"] *::before,
+[data-reduce-motion="true"] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+}
+
+/* Touch targets and safe areas (mobile) */
+@media (max-width: 768px) {
+  button, [role="button"], a.min-touch {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@supports (padding: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top);
+  }
+}
