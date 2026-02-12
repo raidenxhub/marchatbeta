@@ -158,7 +158,6 @@ export function WelcomeScreen({
                                 What can I help with?
                             </p>
                             <p className="text-sm text-[#c1c0b5]/50 mt-1">
-                                Chat with MAR
                             </p>
                         </div>
                     )}
