@@ -17,6 +17,10 @@ import {
     Trash2,
     Download,
     LogOut,
+    Briefcase,
+    Smile,
+    Settings as SettingsIcon,
+    BookOpen,
 } from "lucide-react";
 import { useTheme } from "next-themes";
 import Link from "next/link";
@@ -165,16 +169,16 @@ export default function SettingsPage() {
                                             <h3 className="text-sm font-medium mb-3">AI Persona</h3>
                                             <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                                                 {[
-                                                    { value: "professional", label: "Professional", emoji: "💼" },
-                                                    { value: "casual", label: "Casual", emoji: "😊" },
-                                                    { value: "technical", label: "Technical", emoji: "⚙️" },
-                                                    { value: "creative", label: "Creative", emoji: "🎨" },
-                                                    { value: "educational", label: "Educational", emoji: "📚" },
+                                                    { value: "professional", label: "Professional", Icon: Briefcase },
+                                                    { value: "casual", label: "Casual", Icon: Smile },
+                                                    { value: "technical", label: "Technical", Icon: SettingsIcon },
+                                                    { value: "creative", label: "Creative", Icon: Palette },
+                                                    { value: "educational", label: "Educational", Icon: BookOpen },
                                                 ].map((option) => (
                                                     <button
                                                         key={option.value}
                                                         onClick={() =>
-                                                            setPreferences({ persona: option.value as any })
+                                                            setPreferences({ persona: option.value as "professional" | "casual" | "technical" | "creative" | "educational" })
                                                         }
                                                         className={cn(
                                                             "flex items-center gap-2 p-3 rounded-xl border-2 transition-all",
@@ -183,7 +187,7 @@ export default function SettingsPage() {
                                                                 : "border-transparent bg-gray-100 dark:bg-gray-800 hover:border-gray-300 dark:hover:border-gray-600"
                                                         )}
                                                     >
-                                                        <span className="text-xl">{option.emoji}</span>
+                                                        <option.Icon className="w-5 h-5 shrink-0" />
                                                         <span className="text-sm font-medium">{option.label}</span>
                                                     </button>
                                                 ))}

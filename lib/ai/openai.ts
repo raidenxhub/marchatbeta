@@ -5,19 +5,18 @@ import "@/lib/tools/init";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
-// Most cost-efficient model with reliable tool use (~$0.15/1M in, ~$0.60/1M out)
-const DEFAULT_MODEL = "gpt-4o-mini";
-
+// GPT-5 Nano: 400K context, 128K output, agentic tools, high-throughput, lower cost
+const DEFAULT_MODEL = "gpt-5-nano";
 const MODEL_MAP: Record<ModelId, string> = {
-    "mar-beta": "gpt-4o-mini",
-    "mar-pro": "gpt-4o-mini",
-    "mar-deep": "gpt-4o-mini",
+    "mar-beta": "gpt-5-nano",
+    "mar-pro": "gpt-5-nano",
+    "mar-deep": "gpt-5-nano",
 };
 
 const MAX_TOKENS_MAP: Record<ModelId, number> = {
-    "mar-beta": 4096,
-    "mar-pro": 4096,
-    "mar-deep": 4096,
+    "mar-beta": 32768,
+    "mar-pro": 32768,
+    "mar-deep": 131072,
 };
 
 // Same system prompts as gemini.ts for consistent MAR personality and tool usage
@@ -158,8 +157,9 @@ Tool usage instructions:
     
 };
 
-const MAX_MESSAGES_CONTEXT = 20;
-const MAX_TOOL_ITERATIONS = 5; // Prevent infinite tool loops
+// GPT-5 Nano 400K context: allow more turns; trim to last N for token efficiency
+const MAX_MESSAGES_CONTEXT = 80;
+const MAX_TOOL_ITERATIONS = 5;
 
 function getApiKey(): string {
     let key = (process.env.OPENAI_API_KEY ?? "").trim().split(/\s/)[0] ?? "";
@@ -272,6 +272,7 @@ function messagesToOpenAI(
         workFunction?: string;
         personalPreferences?: string;
         memoryFacts?: string[];
+        crossChatContext?: Array<{ title: string; lastPreview: string }>;
     }
 ): OpenAIMessage[] {
     const trimmed = messages.length > MAX_MESSAGES_CONTEXT
@@ -296,6 +297,15 @@ function messagesToOpenAI(
     }
     if (options?.memoryFacts?.length) {
         systemPrompt += "\n\nThings to remember (use across conversations):\n" + options.memoryFacts.map((f, i) => `${i + 1}. ${f}`).join("\n");
+    }
+    if (options?.crossChatContext?.length) {
+        const lines = options.crossChatContext
+            .slice(0, 20)
+            .map((c) => (c.lastPreview ? `[${c.title}] ${c.lastPreview}` : `[${c.title}]`))
+            .filter(Boolean);
+        if (lines.length) {
+            systemPrompt += "\n\nRecent context from other chats (use for continuity):\n" + lines.join("\n");
+        }
     }
     const openaiMessages: OpenAIMessage[] = [
         { role: "system", content: systemPrompt },
@@ -323,6 +333,7 @@ export async function* streamChatCompletion(
         workFunction?: string;
         personalPreferences?: string;
         memoryFacts?: string[];
+        crossChatContext?: Array<{ title: string; lastPreview: string }>;
     }
 ): AsyncGenerator<{
     text?: string;

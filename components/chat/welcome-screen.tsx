@@ -133,11 +133,11 @@ export function WelcomeScreen({
                             <div className="flex items-center gap-2">
                                 <span className="text-2xl text-orange-500">✦</span>
                                 <h1 className="text-3xl md:text-4xl font-medium text-[#c1c0b5] tracking-tight">
-                                    You're incognito
+                                    You&apos;re incognito
                                 </h1>
                             </div>
                             <p className="text-sm text-[#c1c0b5]/60 max-w-lg text-center">
-                                Incognito chats aren't saved to history or used to train models.{" "}
+                                Incognito chats aren&apos;t saved to history or used to train models.{" "}
                                 <a href="#" className="text-[#c1c0b5]/70 hover:text-[#c1c0b5] hover:underline">
                                     Learn more about how your data is used.
                                 </a>

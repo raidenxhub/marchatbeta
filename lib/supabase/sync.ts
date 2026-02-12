@@ -9,8 +9,7 @@
 import { createClient } from "@/lib/supabase/client";
 import type { Conversation, Message } from "@/lib/types/chat";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const sb = (): any => createClient();
+const sb = () => createClient();
 
 /* ------------------------------------------------------------------ */
 /*  Conversations                                                      */
@@ -52,17 +51,16 @@ export async function fetchConversationsFromSupabase(userId: string): Promise<Co
             .eq("user_id", userId)
             .order("updated_at", { ascending: false });
         if (error) throw error;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (data ?? []).map((row: any) => ({
-            id: row.id,
-            userId: row.user_id,
-            title: row.title || "New Chat",
-            model: row.model || "mar-beta",
-            createdAt: new Date(row.created_at),
-            updatedAt: new Date(row.updated_at),
-            isArchived: row.is_archived ?? false,
+        return (data ?? []).map((row: Record<string, unknown>) => ({
+            id: String(row.id),
+            userId: String(row.user_id),
+            title: String(row.title || "New Chat"),
+            model: String(row.model || "mar-beta"),
+            createdAt: new Date(row.created_at as string),
+            updatedAt: new Date(row.updated_at as string),
+            isArchived: Boolean(row.is_archived ?? false),
             isPinned: false,
-            metadata: row.metadata ?? {},
+            metadata: (row.metadata as Record<string, unknown>) ?? {},
         })) as Conversation[];
     } catch (e) {
         console.warn("[sync] fetch conversations failed", e);
@@ -104,16 +102,15 @@ export async function fetchMessagesFromSupabase(
             .eq("conversation_id", conversationId)
             .order("created_at", { ascending: true });
         if (error) throw error;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        return (data ?? []).map((row: any) => ({
-            id: row.id,
-            conversationId: row.conversation_id,
-            role: row.role,
-            content: row.content,
-            createdAt: new Date(row.created_at),
-            metadata: row.metadata ?? {},
-            tokensUsed: row.tokens_used ?? undefined,
-            model: row.model ?? undefined,
+        return (data ?? []).map((row: Record<string, unknown>) => ({
+            id: String(row.id),
+            conversationId: String(row.conversation_id),
+            role: String(row.role),
+            content: String(row.content),
+            createdAt: new Date(row.created_at as string),
+            metadata: (row.metadata as Record<string, unknown>) ?? {},
+            tokensUsed: row.tokens_used != null ? Number(row.tokens_used) : undefined,
+            model: row.model != null ? String(row.model) : undefined,
         })) as Message[];
     } catch (e) {
         console.warn("[sync] fetch messages failed", e);
@@ -148,5 +145,55 @@ export async function fetchSettingsFromProfile(userId: string): Promise<Record<s
     } catch (e) {
         console.warn("[sync] fetch settings failed", e);
         return null;
+    }
+}
+
+/** Fetch recent conversation summaries for cross-chat context (title + last message preview). */
+export async function fetchRecentConversationSummaries(
+    userId: string,
+    excludeConversationId: string | null,
+    limit: number = 15
+): Promise<Array<{ title: string; lastPreview: string }>> {
+    try {
+        const { data: convs, error: convErr } = await sb()
+            .from("conversations")
+            .select("id, title")
+            .eq("user_id", userId)
+            .order("updated_at", { ascending: false })
+            .limit(limit + 10);
+        if (convErr || !convs?.length) return [];
+        const ids = (convs as { id: string; title: string }[])
+            .filter((c) => c.id !== excludeConversationId)
+            .slice(0, limit)
+            .map((c) => c.id);
+        if (ids.length === 0) return [];
+        const { data: msgs, error: msgErr } = await sb()
+            .from("messages")
+            .select("conversation_id, content, role")
+            .in("conversation_id", ids)
+            .order("created_at", { ascending: false });
+        if (msgErr || !msgs?.length) {
+            return ids.map((id) => {
+                const c = (convs as { id: string; title: string }[]).find((x) => x.id === id);
+                return { title: c?.title ?? "Chat", lastPreview: "" };
+            });
+        }
+        const byConv = (msgs as { conversation_id: string; content: string; role: string }[]).reduce(
+            (acc, m) => {
+                if (!acc[m.conversation_id]) acc[m.conversation_id] = [];
+                acc[m.conversation_id].push(m);
+                return acc;
+            },
+            {} as Record<string, { content: string; role: string }[]>
+        );
+        return ids.map((id) => {
+            const c = (convs as { id: string; title: string }[]).find((x) => x.id === id);
+            const last = byConv[id]?.[0];
+            const preview = last ? `${last.role}: ${(last.content || "").slice(0, 120).trim()}${last.content.length > 120 ? "…" : ""}` : "";
+            return { title: c?.title ?? "Chat", lastPreview: preview };
+        });
+    } catch (e) {
+        console.warn("[sync] fetch recent summaries failed", e);
+        return [];
     }
 }

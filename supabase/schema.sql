@@ -7,8 +7,8 @@
 -- In Supabase Dashboard: Authentication > URL Configuration
 -- Add these to "Redirect URLs":
 --   http://localhost:3000/auth/callback
---   https://yourdomain.com/auth/callback
--- Set "Site URL" to your production URL (e.g. https://gomarai.com)
+--   https://chat.gomarai.com/auth/callback
+-- Set "Site URL" to: https://chat.gomarai.com
 -- For magic links: Auth > Email Templates - ensure magic link template is configured.
 -- To reduce "otp_expired" errors: Auth > Settings > Auth Providers > Email - 
 --   Magic Link expiry is 3600s by default. Consider enabling "Secure email change" etc.

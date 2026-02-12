@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/lib/store/auth-store";
 import { useSettingsStore } from "@/lib/store/settings-store";
+import { fetchSettingsFromProfile } from "@/lib/supabase/sync";
 
 interface AuthProviderProps {
     children: React.ReactNode;
@@ -31,7 +32,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
                 } else {
                     setUser(user);
                     if (user) {
-                        const { profileName, setProfileName, setProfileAvatarUrl } = useSettingsStore.getState();
+                        const { setProfileName, setProfileAvatarUrl, setMemoryFacts, setSkills } = useSettingsStore.getState();
                         const md = user.user_metadata || {};
                         const authName =
                             md.full_name ||
@@ -39,9 +40,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
                             [md.given_name, md.family_name].filter(Boolean).join(" ") ||
                             user.email?.split("@")[0] ||
                             "";
-                        if (authName && (!profileName || profileName === "Guest User")) setProfileName(authName);
+                        if (authName) setProfileName(authName);
                         const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null;
                         if (avatar) setProfileAvatarUrl(avatar);
+                        fetchSettingsFromProfile(user.id).then((prefs) => {
+                            if (prefs?.memoryFacts && Array.isArray(prefs.memoryFacts)) setMemoryFacts(prefs.memoryFacts as string[]);
+                            if (prefs?.skills && Array.isArray(prefs.skills)) setSkills(prefs.skills as string[]);
+                        }).catch(() => {});
                     }
                 }
             } catch (error) {
@@ -59,7 +64,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
             const user = session?.user ?? null;
             setUser(user);
             if (user) {
-                const { profileName, setProfileName, setProfileAvatarUrl } = useSettingsStore.getState();
+                const { setProfileName, setProfileAvatarUrl, setMemoryFacts, setSkills } = useSettingsStore.getState();
                 const md = user.user_metadata || {};
                 const authName =
                     md.full_name ||
@@ -67,9 +72,13 @@ export function AuthProvider({ children }: AuthProviderProps) {
                     [md.given_name, md.family_name].filter(Boolean).join(" ") ||
                     user.email?.split("@")[0] ||
                     "";
-                if (authName && !profileName) setProfileName(authName);
+                if (authName) setProfileName(authName);
                 const avatar = user.user_metadata?.avatar_url ?? user.user_metadata?.picture ?? null;
                 if (avatar) setProfileAvatarUrl(avatar);
+                fetchSettingsFromProfile(user.id).then((prefs) => {
+                    if (prefs?.memoryFacts && Array.isArray(prefs.memoryFacts)) setMemoryFacts(prefs.memoryFacts as string[]);
+                    if (prefs?.skills && Array.isArray(prefs.skills)) setSkills(prefs.skills as string[]);
+                }).catch(() => {});
             }
         });
 

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { Check } from "lucide-react";
 import {
     Dialog,
     DialogContent,
@@ -61,10 +62,10 @@ export function OnboardingDialog({ open, onComplete }: OnboardingDialogProps) {
                         className="space-y-4"
                     >
                         <div className="rounded-lg border border-[#333] bg-[#262624] p-4 space-y-2 text-sm text-[#c1c0b5]/90">
-                            <p>✓ <strong>100% free AI</strong> — No subscriptions, no paywalls</p>
-                            <p>✓ <strong>Forever for everyone</strong> — Accessible to all</p>
-                            <p>✓ <strong>Privacy-first</strong> — Your data stays yours</p>
-                            <p>✓ <strong>Open & transparent</strong> — No hidden limits</p>
+                            <p className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400/90 shrink-0" /><strong>100% free AI</strong> — No subscriptions, no paywalls</p>
+                            <p className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400/90 shrink-0" /><strong>Forever for everyone</strong> — Accessible to all</p>
+                            <p className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400/90 shrink-0" /><strong>Privacy-first</strong> — Your data stays yours</p>
+                            <p className="flex items-center gap-2"><Check className="w-4 h-4 text-amber-400/90 shrink-0" /><strong>Open & transparent</strong> — No hidden limits</p>
                         </div>
                         <Button
                             className="w-full bg-[#f5f5dc] text-[#262624] hover:bg-[#e0dfd4]"

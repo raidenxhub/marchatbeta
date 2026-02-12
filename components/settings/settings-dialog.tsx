@@ -314,7 +314,7 @@ export function SettingsDialog() {
                                                 What personal preferences should MAR consider in responses?
                                             </Label>
                                             <p className="text-xs text-[#c1c0b5]/50">
-                                                Your preferences will apply to all conversations, within MAR's guidelines.
+                                                Your preferences will apply to all conversations, within MAR&apos;s guidelines.
                                             </p>
                                             <textarea
                                                 value={personalPreferences}

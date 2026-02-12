@@ -44,10 +44,13 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
     const handleOAuthLogin = async (provider: "google") => {
         setIsLoading(true);
         try {
+            const appUrl = typeof process.env.NEXT_PUBLIC_APP_URL === "string" && process.env.NEXT_PUBLIC_APP_URL
+                ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")
+                : window.location.origin;
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
-                    redirectTo: `${window.location.origin}/auth/callback`,
+                    redirectTo: `${appUrl}/auth/callback`,
                 },
             });
             if (error) throw error;
@@ -189,7 +192,7 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
                             </form>
 
                             <p className="text-xs text-center text-[#c1c0b5]/50">
-                                By continuing, you acknowledge MAR's{" "}
+                                By continuing, you acknowledge MAR&apos;s{" "}
                                 <a href="https://gomarai.com/terms" target="_blank" rel="noopener noreferrer" className="text-[#c1c0b5]/70 hover:underline">
                                     Terms of Service
                                 </a>

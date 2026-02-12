@@ -8,6 +8,7 @@ import { AuthDialog } from "@/components/auth/auth-dialog";
 import { SettingsDialog } from "@/components/settings/settings-dialog";
 import { OnboardingDialog } from "@/components/onboarding/onboarding-dialog";
 import { useAuthStore } from "@/lib/store/auth-store";
+import { fetchRecentConversationSummaries } from "@/lib/supabase/sync";
 import { Header } from "@/components/layout/header";
 import { DotShaderBackground } from "@/components/ui/dot-shader-background";
 import { ArtifactPanel } from "@/components/artifacts/artifact-panel";
@@ -33,7 +34,7 @@ export default function ChatPage() {
 
     const chatInputRef = useRef<ChatInputRef>(null);
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
-    const { isAuthenticated, authDialogOpen, setAuthDialogOpen } = useAuthStore();
+    const { isAuthenticated, user, authDialogOpen, setAuthDialogOpen } = useAuthStore();
 
     const {
         sidebarOpen,
@@ -163,6 +164,11 @@ export default function ChatPage() {
                 const artifactRefs: { id: string; type: string; title: string }[] = [];
 
             try {
+                const crossChatContext =
+                    isAuthenticated && user?.id
+                        ? await fetchRecentConversationSummaries(user.id, conversationId || null, 15)
+                        : undefined;
+
                 const response = await fetchWithRetry("/api/chat", {
                     retries: 2,
                     method: "POST",
@@ -182,6 +188,7 @@ export default function ChatPage() {
                         workFunction: workFunction?.trim() || undefined,
                         personalPreferences: personalPreferences?.trim() || undefined,
                         memoryFacts: memoryFacts?.length ? memoryFacts : undefined,
+                        crossChatContext: crossChatContext?.length ? crossChatContext : undefined,
                     }),
                     signal: abortControllerRef.current.signal,
                 }, (attempt) => {
@@ -410,7 +417,6 @@ export default function ChatPage() {
             addMessage,
             updateConversation,
             addArtifact,
-            getActiveMessages,
             setIsLoading,
             setIsStreaming,
             setStreamingMessage,
@@ -421,6 +427,10 @@ export default function ChatPage() {
             setStreamingHotelResults,
             setStreamingWeatherResults,
             isAuthenticated,
+            setAuthDialogOpen,
+            user?.id,
+            preferences.responseStyle,
+            preferences.webSearchEnabled,
         ]
     );
 

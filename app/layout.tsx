@@ -24,34 +24,38 @@ const BASE_URL = process.env.NEXT_PUBLIC_APP_URL || "https://chat.gomarai.com";
 export const metadata: Metadata = {
     metadataBase: new URL(BASE_URL),
     title: {
-        default: "MAR Chat",
+        default: "MAR Chat | Free AI Assistant — ChatGPT, Claude & Gemini Alternative",
         template: "%s | MAR Chat",
     },
     description:
-        "MAR Chat - A free, open-source AI assistant that rivals Claude, ChatGPT, and Gemini. Powered by advanced AI with unlimited access, complete privacy, and powerful tools.",
+        "MAR Chat is a free, open-source AI assistant with a 400K-token context window, web search, code execution, and artifacts. No subscriptions, no paywalls. Better than ChatGPT, Claude, and Gemini for privacy and capability.",
     keywords: [
-        "AI",
-        "chatbot",
-        "assistant",
-        "MAR AI",
-        "gomarai",
-        "free AI",
-        "open source",
-        "Gemini",
+        "MAR Chat",
+        "AI chat",
+        "free AI assistant",
         "ChatGPT alternative",
         "Claude alternative",
+        "Gemini alternative",
+        "MAR AI",
+        "gomarai",
+        "open source AI",
+        "privacy-first AI",
+        "AI chatbot",
+        "conversational AI",
+        "AI"
     ],
-    authors: [{ name: "MAR AI", url: "https://chat.gomarai.com" }],
-    creator: "MAR AI",
-    publisher: "MAR AI",
+    authors: [{ name: "MAR", url: "https://gomarai.com" }],
+    creator: "MAR",
+    publisher: "MAR",
+    alternates: { canonical: BASE_URL },
     openGraph: {
         type: "website",
         locale: "en_US",
-        url: "https://chat.gomarai.com",
+        url: BASE_URL,
         siteName: "MAR Chat",
-        title: "MAR Chat",
+        title: "MAR Chat | Free AI Assistant — ChatGPT, Claude & Gemini Alternative",
         description:
-            "Free, open-source AI assistant with unlimited access. No subscriptions, no limits.",
+            "Free, open-source AI assistant with 400K context, web search, and tools. No subscriptions, no limits.",
         images: [
             {
                 url: "/og-image.png",
@@ -63,9 +67,9 @@ export const metadata: Metadata = {
     },
     twitter: {
         card: "summary_large_image",
-        title: "MAR Chat",
+        title: "MAR Chat | Free AI Assistant",
         description:
-            "Free, open-source AI assistant with unlimited access. No subscriptions, no limits.",
+            "Free, open-source AI assistant with the best tools accessible. No subscriptions, no limits.",
         images: ["/og-image.png"],
         creator: "@gomarai",
     },
@@ -84,6 +88,8 @@ export const metadata: Metadata = {
     icons: {
         icon: "/favicon.svg",
     },
+    category: "technology",
+    applicationName: "MAR Chat",
 };
 
 export const viewport: Viewport = {

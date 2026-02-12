@@ -130,10 +130,8 @@ export async function getCurrentWeather(latitude: number, longitude: number): Pr
         }));
 
         // Calculate some basic forecast stats
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const avgTemp = next24Hours.reduce((acc: number, curr: any) => acc + curr.temp, 0) / next24Hours.length;
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const maxPrecip = Math.max(...next24Hours.map((h: any) => h.precip));
+        const avgTemp = next24Hours.reduce((acc: number, curr: { temp: number }) => acc + curr.temp, 0) / next24Hours.length;
+        const maxPrecip = Math.max(...next24Hours.map((h: { precip: number }) => h.precip));
 
         const result = {
             current: {
@@ -146,7 +144,6 @@ export async function getCurrentWeather(latitude: number, longitude: number): Pr
                 average_temp_next_24h: `${avgTemp.toFixed(1)}°C`,
                 max_precipitation_probability: `${maxPrecip}%`,
             },
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
             daily_forecast: data.daily.time.slice(0, 3).map((t: string, i: number) => ({
                 date: t,
                 max_temp: `${data.daily.temperature_2m_max[i]}°C`,

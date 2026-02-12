@@ -25,6 +25,8 @@ interface ChatRequestBody {
     workFunction?: string;
     personalPreferences?: string;
     memoryFacts?: string[];
+    /** Cross-chat context: recent conversation titles + last message previews for better memory. */
+    crossChatContext?: Array<{ title: string; lastPreview: string }>;
 }
 
 export async function POST(request: NextRequest) {
@@ -54,6 +56,7 @@ export async function POST(request: NextRequest) {
             workFunction,
             personalPreferences,
             memoryFacts,
+            crossChatContext,
         } = body;
 
         // Use mode as persona if provided, otherwise default persona
@@ -67,6 +70,7 @@ export async function POST(request: NextRequest) {
             workFunction,
             personalPreferences,
             memoryFacts,
+            crossChatContext,
         };
 
         logChatRequest({ model, messageCount: messages.length, stream: stream ?? true });

@@ -23,7 +23,7 @@ import {
     FileText,
     Code,
     Layout,
-    Image,
+    Image as ImageIcon,
     Pencil,
     GitBranch,
     MoreHorizontal,
@@ -75,8 +75,8 @@ const ARTIFACT_ICONS: Record<string, React.ReactNode> = {
     html: <Layout className="w-4 h-4" />,
     presentation: <Layout className="w-4 h-4" />,
     spreadsheet: <FileText className="w-4 h-4" />,
-    image: <Image className="w-4 h-4" />,
-    chart: <Image className="w-4 h-4" />,
+    image: <ImageIcon className="w-4 h-4" aria-hidden />,
+    chart: <ImageIcon className="w-4 h-4" aria-hidden />,
 };
 
 /** When tool cards exist, hide content that duplicates flight/hotel/weather data. Only show brief intros. */
@@ -301,6 +301,8 @@ export const ChatMessage = memo(function ChatMessage({
             editTextareaRef.current.focus();
             editTextareaRef.current.setSelectionRange(editContent.length, editContent.length);
         }
+        // Intentionally only run when isEditing toggles; editContent.length would refocus on every keystroke
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isEditing]);
 
     const handleEditSubmit = () => {

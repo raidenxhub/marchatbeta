@@ -55,9 +55,11 @@ interface SettingsState {
     skills: string[];
     addSkill: (content: string) => void;
     removeSkill: (index: number) => void;
+    setSkills: (skills: string[]) => void;
     memoryFacts: string[];
     addMemoryFact: (fact: string) => void;
     removeMemoryFact: (index: number) => void;
+    setMemoryFacts: (facts: string[]) => void;
     hasCompletedOnboarding: boolean;
     setHasCompletedOnboarding: (v: boolean) => void;
 }
@@ -118,15 +120,17 @@ export const useSettingsStore = create<SettingsState>()(
                 set((s) => ({
                     skills: s.skills.filter((_, i) => i !== index),
                 })),
+            setSkills: (skills) => set({ skills: Array.isArray(skills) ? skills : [] }),
             memoryFacts: [],
             addMemoryFact: (fact) =>
                 set((s) => ({
-                    memoryFacts: [...s.memoryFacts, fact.trim()].filter(Boolean).slice(-20),
+                    memoryFacts: [...s.memoryFacts, fact.trim()].filter(Boolean).slice(-500),
                 })),
             removeMemoryFact: (index) =>
                 set((s) => ({
                     memoryFacts: s.memoryFacts.filter((_, i) => i !== index),
                 })),
+            setMemoryFacts: (facts) => set({ memoryFacts: Array.isArray(facts) ? facts.slice(-500) : [] }),
             hasCompletedOnboarding: false,
             setHasCompletedOnboarding: (hasCompletedOnboarding) => set({ hasCompletedOnboarding }),
         }),
@@ -153,6 +157,7 @@ useSettingsStore.subscribe((state) => {
             workFunction: state.workFunction,
             personalPreferences: state.personalPreferences,
             skills: state.skills,
+            memoryFacts: state.memoryFacts,
             artifactsEnabled: state.artifactsEnabled,
             codeExecutionEnabled: state.codeExecutionEnabled,
         };
