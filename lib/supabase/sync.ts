@@ -1,15 +1,14 @@
 /**
  * Supabase sync layer -- fire-and-forget helpers that mirror local state to the DB.
  * Uses the browser (client-side) Supabase client.
- *
- * We use `as any` for Supabase operations because the typed client's
- * generics sometimes resolve to `never` in strict mode. These are
- * fire-and-forget background calls so runtime safety is sufficient.
  */
 import { createClient } from "@/lib/supabase/client";
+import type { Database } from "@/lib/types/database";
 import type { Conversation, Message } from "@/lib/types/chat";
 
 const sb = () => createClient();
+
+type ConversationRow = Database["public"]["Tables"]["conversations"]["Insert"];
 
 /* ------------------------------------------------------------------ */
 /*  Conversations                                                      */
@@ -17,19 +16,17 @@ const sb = () => createClient();
 
 export async function syncConversationToSupabase(conversation: Conversation, userId: string) {
     try {
-        await sb().from("conversations").upsert(
-            {
-                id: conversation.id,
-                user_id: userId,
-                title: conversation.title,
-                model: conversation.model,
-                created_at: new Date(conversation.createdAt).toISOString(),
-                updated_at: new Date(conversation.updatedAt).toISOString(),
-                is_archived: conversation.isArchived,
-                metadata: conversation.metadata ?? {},
-            },
-            { onConflict: "id" }
-        );
+        const row: ConversationRow = {
+            id: conversation.id,
+            user_id: userId,
+            title: conversation.title,
+            model: conversation.model,
+            created_at: new Date(conversation.createdAt).toISOString(),
+            updated_at: new Date(conversation.updatedAt).toISOString(),
+            is_archived: conversation.isArchived,
+            metadata: (conversation.metadata ?? {}) as Database["public"]["Tables"]["conversations"]["Row"]["metadata"],
+        };
+        await sb().from("conversations").upsert(row as never, { onConflict: "id" });
     } catch (e) {
         console.warn("[sync] conversation upsert failed", e);
     }
@@ -74,19 +71,17 @@ export async function fetchConversationsFromSupabase(userId: string): Promise<Co
 
 export async function syncMessageToSupabase(message: Message) {
     try {
-        await sb().from("messages").upsert(
-            {
-                id: message.id,
-                conversation_id: message.conversationId,
-                role: message.role,
-                content: message.content,
-                created_at: new Date(message.createdAt).toISOString(),
-                metadata: message.metadata ?? {},
-                tokens_used: message.tokensUsed ?? null,
-                model: message.model ?? null,
-            },
-            { onConflict: "id" }
-        );
+        const row = {
+            id: message.id,
+            conversation_id: message.conversationId,
+            role: message.role,
+            content: message.content,
+            created_at: new Date(message.createdAt).toISOString(),
+            metadata: message.metadata ?? {},
+            tokens_used: message.tokensUsed ?? null,
+            model: message.model ?? null,
+        };
+        await sb().from("messages").upsert(row as never, { onConflict: "id" });
     } catch (e) {
         console.warn("[sync] message upsert failed", e);
     }
@@ -126,7 +121,7 @@ export async function syncSettingsToProfile(userId: string, preferences: Record<
     try {
         await sb()
             .from("profiles")
-            .update({ preferences })
+            .update({ preferences } as never)
             .eq("id", userId);
     } catch (e) {
         console.warn("[sync] settings sync failed", e);
@@ -141,7 +136,7 @@ export async function fetchSettingsFromProfile(userId: string): Promise<Record<s
             .eq("id", userId)
             .single();
         if (error) throw error;
-        return (data?.preferences as Record<string, unknown>) ?? null;
+        return ((data as { preferences?: Record<string, unknown> } | null)?.preferences) ?? null;
     } catch (e) {
         console.warn("[sync] fetch settings failed", e);
         return null;
