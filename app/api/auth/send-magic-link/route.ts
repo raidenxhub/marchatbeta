@@ -31,7 +31,10 @@ export async function POST(request: NextRequest) {
         }
 
         const supabase = createAdminClient();
-        const origin = process.env.NEXT_PUBLIC_APP_URL || request.nextUrl.origin;
+        const fromEnv = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
+        const requestOrigin = request.nextUrl.origin;
+        const isLocalhost = (url: string) => /^https?:\/\/localhost(:\d+)?$/i.test(url) || url.startsWith("http://127.0.0.1");
+        const origin = fromEnv && !isLocalhost(fromEnv) ? fromEnv : isLocalhost(requestOrigin) ? "https://chat.gomarai.com" : requestOrigin;
         const redirectTo = `${origin}/auth/callback`;
 
         const { data, error } = await supabase.auth.admin.generateLink({

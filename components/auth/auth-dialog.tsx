@@ -44,9 +44,13 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
     const handleOAuthLogin = async (provider: "google") => {
         setIsLoading(true);
         try {
-            const appUrl = typeof process.env.NEXT_PUBLIC_APP_URL === "string" && process.env.NEXT_PUBLIC_APP_URL
+            const fromEnv = typeof process.env.NEXT_PUBLIC_APP_URL === "string" && process.env.NEXT_PUBLIC_APP_URL
                 ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")
-                : window.location.origin;
+                : "";
+            const isLocalhost = (url: string) => /^https?:\/\/localhost(:\d+)?$/i.test(url) || url.startsWith("http://127.0.0.1");
+            const appUrl = fromEnv && !isLocalhost(fromEnv)
+                ? fromEnv
+                : "https://chat.gomarai.com";
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
