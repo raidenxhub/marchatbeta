@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getMagicLinkEmailHtml, getMagicLinkEmailText } from "@/lib/email/magic-link-template";
+import { AUTH_CALLBACK_URL } from "@/lib/auth/constants";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
 
@@ -31,11 +32,7 @@ export async function POST(request: NextRequest) {
         }
 
         const supabase = createAdminClient();
-        const fromEnv = (process.env.NEXT_PUBLIC_APP_URL || "").replace(/\/$/, "");
-        const requestOrigin = request.nextUrl.origin;
-        const isLocalhost = (url: string) => /^https?:\/\/localhost(:\d+)?$/i.test(url) || url.startsWith("http://127.0.0.1");
-        const origin = fromEnv && !isLocalhost(fromEnv) ? fromEnv : isLocalhost(requestOrigin) ? "https://chat.gomarai.com" : requestOrigin;
-        const redirectTo = `${origin}/auth/callback`;
+        const redirectTo = AUTH_CALLBACK_URL;
 
         const { data, error } = await supabase.auth.admin.generateLink({
             type: "magiclink",
@@ -54,7 +51,7 @@ export async function POST(request: NextRequest) {
         const hashedToken = data.properties?.hashed_token;
         const actionLink = data.properties?.action_link;
         const signInUrl = hashedToken
-            ? `${origin}/auth/callback?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink`
+            ? `${AUTH_CALLBACK_URL}?token_hash=${encodeURIComponent(hashedToken)}&type=magiclink`
             : actionLink;
         if (!signInUrl) {
             return NextResponse.json(

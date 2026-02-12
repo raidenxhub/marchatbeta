@@ -26,6 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { createClient } from "@/lib/supabase/client";
+import { AUTH_CALLBACK_URL } from "@/lib/auth/constants";
 
 interface AuthDialogProps {
     open: boolean;
@@ -44,17 +45,10 @@ export function AuthDialog({ open, onOpenChange }: AuthDialogProps) {
     const handleOAuthLogin = async (provider: "google") => {
         setIsLoading(true);
         try {
-            const fromEnv = typeof process.env.NEXT_PUBLIC_APP_URL === "string" && process.env.NEXT_PUBLIC_APP_URL
-                ? process.env.NEXT_PUBLIC_APP_URL.replace(/\/$/, "")
-                : "";
-            const isLocalhost = (url: string) => /^https?:\/\/localhost(:\d+)?$/i.test(url) || url.startsWith("http://127.0.0.1");
-            const appUrl = fromEnv && !isLocalhost(fromEnv)
-                ? fromEnv
-                : "https://chat.gomarai.com";
             const { error } = await supabase.auth.signInWithOAuth({
                 provider,
                 options: {
-                    redirectTo: `${appUrl}/auth/callback`,
+                    redirectTo: AUTH_CALLBACK_URL,
                 },
             });
             if (error) throw error;
