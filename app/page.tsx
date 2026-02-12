@@ -12,7 +12,7 @@ import { fetchRecentConversationSummaries } from "@/lib/supabase/sync";
 import { Header } from "@/components/layout/header";
 import { DotShaderBackground } from "@/components/ui/dot-shader-background";
 import { ArtifactPanel } from "@/components/artifacts/artifact-panel";
-import { ChatInput, type ChatInputRef } from "@/components/chat/chat-input";
+import { ChatInput, type ChatInputRef, type ChatAttachmentPayload } from "@/components/chat/chat-input";
 import { ChatMessage } from "@/components/chat/chat-message";
 import { WelcomeScreen } from "@/components/chat/welcome-screen";
 import { CommandPalette, useGlobalShortcuts } from "@/components/command-palette";
@@ -59,6 +59,7 @@ export default function ChatPage() {
         setStreamingFlightResults,
         setStreamingHotelResults,
         setStreamingWeatherResults,
+        setStreamingStatus,
         setActiveConversation,
         addMessage,
         updateMessage,
@@ -109,8 +110,9 @@ export default function ChatPage() {
     }, [messages.length, streamingMessage, isStreaming]);
 
     const handleSendMessage = useCallback(
-        async (content: string) => {
-            if (!content.trim()) return;
+        async (content: string, attachments?: ChatAttachmentPayload[]) => {
+            const trimmed = content.trim();
+            if (!trimmed && !attachments?.length) return;
 
             if (!isAuthenticated) {
                 setAuthDialogOpen(true);
@@ -123,18 +125,27 @@ export default function ChatPage() {
                 conversationId = createConversation(selectedModel);
             }
 
-            // Add user message
+            const hasAttachments = attachments && attachments.length > 0;
+            const displayContent = trimmed
+                ? trimmed
+                : hasAttachments
+                    ? "Attached: " + attachments!.map((a) => a.name).join(", ")
+                    : "";
             const userMessage: Message = {
                 id: generateId(),
                 conversationId,
                 role: "user",
-                content: content.trim(),
+                content: displayContent,
                 createdAt: new Date(),
             };
             addMessage(conversationId, userMessage);
 
-            // Build messages array for API
-            const allMessages = [...messages, userMessage].map((m) => ({
+            const apiContent = trimmed
+                ? trimmed
+                : hasAttachments
+                    ? "Analyze the attached file(s) and respond based on their contents. Summarize key points or answer based on what you see."
+                    : "";
+            const allMessages = [...messages, { ...userMessage, content: apiContent }].map((m) => ({
                 role: m.role,
                 content: m.content,
             }));
@@ -147,6 +158,7 @@ export default function ChatPage() {
             setStreamingFlightResults(null);
             setStreamingHotelResults(null);
             setStreamingWeatherResults(null);
+            setStreamingStatus(hasAttachments ? "Analyzing…" : null);
             setWasTruncated(false);
             setWasStopped(false);
 
@@ -164,10 +176,14 @@ export default function ChatPage() {
                 const artifactRefs: { id: string; type: string; title: string }[] = [];
 
             try {
-                const crossChatContext =
+                const crossChatContextPromise =
                     isAuthenticated && user?.id
-                        ? await fetchRecentConversationSummaries(user.id, conversationId || null, 15)
-                        : undefined;
+                        ? fetchRecentConversationSummaries(user.id, conversationId || null, 10)
+                        : Promise.resolve(undefined);
+                const crossChatContext = await Promise.race([
+                    crossChatContextPromise,
+                    new Promise<undefined>((r) => setTimeout(() => r(undefined), 80)),
+                ]);
 
                 const response = await fetchWithRetry("/api/chat", {
                     retries: 2,
@@ -189,6 +205,7 @@ export default function ChatPage() {
                         personalPreferences: personalPreferences?.trim() || undefined,
                         memoryFacts: memoryFacts?.length ? memoryFacts : undefined,
                         crossChatContext: crossChatContext?.length ? crossChatContext : undefined,
+                        attachments: attachments?.length ? attachments : undefined,
                     }),
                     signal: abortControllerRef.current.signal,
                 }, (attempt) => {
@@ -215,42 +232,31 @@ export default function ChatPage() {
                 let buffer = "";
                 let streamDone = false;
 
-                // Safety timeout: if streaming takes over 90s, force-close
                 const STREAM_TIMEOUT_MS = 90_000;
                 const streamTimeout = setTimeout(() => {
                     try { reader.cancel(); } catch (_) {}
                 }, STREAM_TIMEOUT_MS);
 
-                try {
-                while (!streamDone) {
-                    const { done, value } = await reader.read();
-                    if (done) break;
-
-                    const chunk = decoder.decode(value, { stream: true });
-                    buffer += chunk;
-
+                function processBuffer(): boolean {
                     const lines = buffer.split("\n");
-                    buffer = lines.pop() || ""; // Save incomplete line for next iteration
-
+                    buffer = lines.pop() || "";
+                    let batchText = "";
+                    let batchReasoning = "";
                     for (const line of lines) {
                         const trimmedLine = line.trim();
                         if (!trimmedLine || !trimmedLine.startsWith("data: ")) continue;
-
                         const data = trimmedLine.substring(5).trim();
-                        if (data === "[DONE]") { streamDone = true; break; }
-
+                        if (data === "[DONE]") {
+                            if (batchText) appendStreamingMessage(batchText);
+                            if (batchReasoning) appendStreamingReasoning(batchReasoning);
+                            return true;
+                        }
                         try {
                             const parsed = JSON.parse(data);
                             if (parsed.error) throw new Error(parsed.error);
-
-                            if (parsed.text) {
-                                fullContent += parsed.text;
-                                appendStreamingMessage(parsed.text);
-                            }
-                            if (parsed.reasoning) {
-                                fullReasoning += parsed.reasoning;
-                                appendStreamingReasoning(parsed.reasoning);
-                            }
+                            if (parsed.status === "analyzing") setStreamingStatus("Analyzing…");
+                            if (parsed.text) { setStreamingStatus(null); fullContent += parsed.text; batchText += parsed.text; }
+                            if (parsed.reasoning) { setStreamingStatus(null); fullReasoning += parsed.reasoning; batchReasoning += parsed.reasoning; }
                             if (parsed.artifact && typeof parsed.artifact === "object") {
                                 const a = parsed.artifact as { title?: string; type?: string; content?: string };
                                 const artifactId = generateId();
@@ -260,7 +266,7 @@ export default function ChatPage() {
                                     id: artifactId,
                                     userId: "local",
                                     conversationId: conversationId || undefined,
-                                    type: artifactType as any,
+                                    type: artifactType as "document" | "code" | "html",
                                     title: a.title || "Untitled",
                                     content: a.content || "",
                                     createdAt: new Date(),
@@ -268,50 +274,43 @@ export default function ChatPage() {
                                 });
                             }
                             if (parsed.flightResults && typeof parsed.flightResults === "object") {
-                                const fr = parsed.flightResults as FlightResultsData;
-                                fullFlightResults = fr;
-                                setStreamingFlightResults(fr);
+                                fullFlightResults = parsed.flightResults as FlightResultsData;
+                                setStreamingFlightResults(fullFlightResults);
                             }
                             if (parsed.hotelResults && typeof parsed.hotelResults === "object") {
-                                const hr = parsed.hotelResults as HotelResultsData;
-                                fullHotelResults = hr;
-                                setStreamingHotelResults(hr);
+                                fullHotelResults = parsed.hotelResults as HotelResultsData;
+                                setStreamingHotelResults(fullHotelResults);
                             }
                             if (parsed.weatherResults && typeof parsed.weatherResults === "object") {
-                                const wr = parsed.weatherResults as WeatherResultsData;
-                                fullWeatherResults = wr;
-                                setStreamingWeatherResults(wr);
+                                fullWeatherResults = parsed.weatherResults as WeatherResultsData;
+                                setStreamingWeatherResults(fullWeatherResults);
                             }
-                            if (parsed.truncated) { setWasTruncated(true); }
-                            if (parsed.done) { streamDone = true; break; }
+                            if (parsed.truncated) setWasTruncated(true);
+                            if (parsed.done) {
+                                if (batchText) appendStreamingMessage(batchText);
+                                if (batchReasoning) appendStreamingReasoning(batchReasoning);
+                                return true;
+                            }
                         } catch (e) {
                             if (e instanceof Error && e.message && !e.message.includes("JSON")) throw e;
-                            console.warn("SSE parse skip:", data?.slice(0, 80));
                         }
                     }
-                }
-                } finally {
-                    clearTimeout(streamTimeout);
+                    if (batchText) appendStreamingMessage(batchText);
+                    if (batchReasoning) appendStreamingReasoning(batchReasoning);
+                    return false;
                 }
 
-                // Process remaining buffer if it contains data
-                if (!streamDone && buffer.trim().startsWith("data: ")) {
-                    const data = buffer.trim().substring(5).trim();
-                    if (data !== "[DONE]") {
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.text) {
-                                fullContent += parsed.text;
-                                appendStreamingMessage(parsed.text);
-                            }
-                            if (parsed.reasoning) {
-                                fullReasoning += parsed.reasoning;
-                                appendStreamingReasoning(parsed.reasoning);
-                            }
-                        } catch (e) {
-                            // Ignore error for partial final chunk
-                        }
+                try {
+                    while (!streamDone) {
+                        const { done, value } = await reader.read();
+                        if (done) break;
+                        buffer += decoder.decode(value, { stream: true });
+                        if (processBuffer()) { streamDone = true; break; }
+                        await new Promise<void>((r) => requestAnimationFrame(() => r()));
                     }
+                    if (!streamDone && buffer.trim()) processBuffer();
+                } finally {
+                    clearTimeout(streamTimeout);
                 }
 
                 // Capture for adding in finally (avoids duplicate: streaming + persisted message)
@@ -395,6 +394,7 @@ export default function ChatPage() {
                 setStreamingFlightResults(null);
                 setStreamingHotelResults(null);
                 setStreamingWeatherResults(null);
+                setStreamingStatus(null);
                 setIsLoading(false);
                 abortControllerRef.current = null;
                 // Response completion notifications disabled
@@ -426,6 +426,7 @@ export default function ChatPage() {
             setStreamingFlightResults,
             setStreamingHotelResults,
             setStreamingWeatherResults,
+            setStreamingStatus,
             isAuthenticated,
             setAuthDialogOpen,
             user?.id,
@@ -555,8 +556,17 @@ export default function ChatPage() {
                 </>
             )}
 
+            {/* Skip to content (accessibility – like ChatGPT/OpenAI) */}
+            <a
+                href="#main-content"
+                className="fixed left-2 top-2 z-[100] -translate-y-20 rounded-md bg-[#262624] px-3 py-2 text-sm font-medium text-[#f5f5dc] shadow-lg ring-1 ring-[#333] focus:translate-y-0 focus:outline-none focus:ring-2 focus:ring-amber-500 focus-visible:translate-y-0 transition-transform duration-200"
+            >
+                Skip to content
+            </a>
             {/* Main Content – full width when incognito; dot shader is the background */}
             <main
+                id="main-content"
+                tabIndex={-1}
                 className={`relative flex-1 flex flex-col transition-all duration-300 overflow-hidden rounded-lg ${
                     incognitoMode ? "ml-0" : sidebarOpen ? "ml-0 md:ml-72" : "ml-14"
                 }`}

@@ -53,6 +53,8 @@ interface ChatState {
     streamingFlightResults: FlightResultsData | null;
     streamingHotelResults: HotelResultsData | null;
     streamingWeatherResults: WeatherResultsData | null;
+    /** Immediate status shown before first chunk (e.g. "Analyzing…", "Searching…"). */
+    streamingStatus: string | null;
     error: string | null;
     incognitoMode: boolean;
 
@@ -95,6 +97,7 @@ interface ChatState {
     setStreamingFlightResults: (data: FlightResultsData | null) => void;
     setStreamingHotelResults: (data: HotelResultsData | null) => void;
     setStreamingWeatherResults: (data: WeatherResultsData | null) => void;
+    setStreamingStatus: (status: string | null) => void;
     setError: (error: string | null) => void;
 
     setSelectedModel: (model: ModelId) => void;
@@ -124,6 +127,7 @@ const initialState = {
     streamingFlightResults: null,
     streamingHotelResults: null,
     streamingWeatherResults: null,
+    streamingStatus: null as string | null,
     error: null,
     selectedModel: "mar-beta" as ModelId,
     preferences: DEFAULT_PREFERENCES,
@@ -374,6 +378,7 @@ export const useChatStore = create<ChatState>()(
             setStreamingFlightResults: (data) => set({ streamingFlightResults: data }),
             setStreamingHotelResults: (data) => set({ streamingHotelResults: data }),
             setStreamingWeatherResults: (data) => set({ streamingWeatherResults: data }),
+            setStreamingStatus: (status) => set({ streamingStatus: status }),
             setError: (error) => set({ error }),
 
             // Settings actions

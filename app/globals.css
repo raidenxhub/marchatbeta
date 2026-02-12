@@ -236,3 +236,8 @@ html.dark body {
     padding-top: env(safe-area-inset-top);
   }
 }
+
+/* Skip to content target: avoid content hidden under fixed header */
+#main-content {
+  scroll-margin-top: 1rem;
+}

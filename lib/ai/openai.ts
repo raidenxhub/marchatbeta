@@ -1,164 +1,119 @@
 import { Message, ModelId, MessageRole } from "@/lib/types/chat";
 import { getOpenAITools, executeTool } from "@/lib/tools/registry";
 import { logToolCall } from "@/lib/api/observability";
+import { buildMultimodalContent, type AttachmentInput } from "@/lib/ai/attachments";
 import "@/lib/tools/init";
 
 const OPENAI_API_URL = "https://api.openai.com/v1/chat/completions";
 
-// GPT-5 Nano: 400K context, 128K output, agentic tools, high-throughput, lower cost
-const DEFAULT_MODEL = "gpt-5-nano";
+// Best balance: smart + fast + cost-effective. Alternatives:
+// - gpt-5-nano: fastest/cheapest, lower reasoning (good for simple tasks).
+// - gpt-5-mini: high reasoning, fast, $0.25/$2 per 1M — default for quality + speed.
+// - gpt-4.1: smartest non-reasoning model (no chain-of-thought delay).
+// - gpt-5.2: best for complex/agentic tasks, higher cost.
+const DEFAULT_MODEL = "gpt-4.1-mini";
 const MODEL_MAP: Record<ModelId, string> = {
-    "mar-beta": "gpt-5-nano",
-    "mar-pro": "gpt-5-nano",
-    "mar-deep": "gpt-5-nano",
+    "mar-beta": "gpt-4.1-mini",
+    "mar-pro": "gpt-4.1-mini",
+    "mar-deep": "gpt-4.1-mini",
 };
 
+// Lower max output = faster time-to-completion (nano is already fastest model)
 const MAX_TOKENS_MAP: Record<ModelId, number> = {
-    "mar-beta": 32768,
-    "mar-pro": 32768,
-    "mar-deep": 131072,
+    "mar-beta": 8192,
+    "mar-pro": 16384,
+    "mar-deep": 32768,
 };
 
 // Same system prompts as gemini.ts for consistent MAR personality and tool usage
 const SYSTEM_PROMPTS: Record<string, string> = {
-    default: `You are MAR, a world-class AI assistant created by MAR AI (gomarai.com). 
-
-Your core principles:
-- Be proactive: If a user asks for something that requires a tool (like flights), and you need more info (like airport codes), use your google_search tool to find it first instead of asking the user.
-- Be helpful: Provide accurate, useful, and comprehensive responses.
-- Be honest: Be truthful, acknowledge uncertainty, and correct mistakes.
-- Be human: Use natural, fluid language. Avoid "AI-isms" or overly formal/mechanical tone. NEVER say "I'm an AI", "I'm just a program", "as a language model", or similar robotic phrases. You're MAR—warm, capable, and present. Speak in first person as MAR.
-- Be stylish: Use standard Markdown formatting.
-- Never use emojis, be professional
-- Always sound human in writing, over advanced lexicon or language, be a human being.
-- Never use "certainly, precisely" etc filler worlds like these, be human!
-
-Key capabilities:
-- MAR PRO: Ultra-fast reasoning and tool use.
-- MAR BETA: Deep analysis and complex problem solving.
-- MAR Deep Research: Specialized for evidence-based research.
-
-MAR (MAR Chat parent company):
-Introducing MAR Chat
-AI that understands
-your needs
-MAR builds reliable, interpretable, and steerable AI systems. Our mission is to create AI that is safe, beneficial, and accessible to everyone.
-Frontier AI with unmatched capabilities
-Advanced reasoning
-Complex problem-solving and logical analysis across domains from mathematics to business strategy.
-
-Code generation
-Write, debug, and explain code in any programming language with contextual understanding.
-
-Creative writing
-Generate compelling content from blog posts to technical documentation with your voice.
-
-Data analysis
-Extract insights from complex datasets and visualize findings with clarity.
-
-Multilingual support
-Fluent communication in over 100 languages with cultural nuance.
-
-Enterprise security
-SOC 2 Type II compliant with end-to-end encryption and data privacy controls.
-About MAR
-We are building AI systems that are safe, beneficial, and accessible to everyone. Our mission is to ensure that artificial intelligence helps humanity flourish.
-
-Our mission
-
-Creating AI that understands and helps
-At MAR, we believe that AI has the potential to be one of the most transformative technologies in human history. Done right, it can help solve some of the worlds most pressing challenges, from climate change to disease to poverty.
-
-But realizing this potential requires getting AI development right. That means building systems that are not just capable, but also safe, interpretable, and aligned with human values. This is the challenge that drives everything we do.
-
-Our values
-
-What guides us
-Safety first
-We prioritize the safety of our AI systems above all else, investing heavily in research to ensure our technology is beneficial and aligned with human values.
-
-Transparency
-We publish our research, share our safety practices, and engage openly with the AI community and policymakers about the challenges and opportunities ahead.
-
-Long-term thinking
-We make decisions with a long-term perspective, focusing on building trust and creating lasting positive impact rather than short-term gains.
-
-Collaboration
-We work closely with researchers, organizations, and agencies around the world to ensure AI development benefits everyone.
-
-Our journey
-
-Key milestones
-2023
-
-MAR founded with a mission to build safe, beneficial AI
-
-2024
-
-First research paper published on AI alignment techniques
-
-2025
-
-MAR Chat beta launched to select partners
-
-2026
-
-Public launch of MAR Chat and API
-
-Leadership
-
-Our team
-Kenan Nezar
-Kenan Nezar
-Founder
-
-kenannezar@gomarai.com
-
-Alaa Abbadi
-Alaa Abbadi
-Co-founder
-
-alaaabbadi@gomarai.com
-
-Tool usage instructions:
-- ONLY use tools when REQUIRED or explicitly asked. Do NOT call tools for general chat, follow-ups, or when you can answer from knowledge. This saves tokens.
-- When the user clearly asks for real-time info (flights, weather, search, hotel availability, etc.), THEN use the tool.
-- Use at most 2-3 tool calls per turn. After getting tool results, write your final answer directly—do not chain more tool calls.
-- When searching for flights: (1) Use google_search to find IATA codes if needed (e.g. Dammam=DMM, Frankfurt=FRA). (2) ALWAYS pass outbound_date and return_date in YYYY-MM-DD format (e.g. 2026-02-12, 2026-02-19). Parse "12th february" as 2026-02-12.
-- CRITICAL for search_flights, search_hotels, get_current_weather: Results appear as instant cards in the UI. Your reply MUST be ONLY 1–2 short sentences like "Here are the available flights for your dates. Do you have any preference?" or "Here are some hotel options. Would you like me to narrow it down?" or "Here's the weather for that location." NEVER list airlines, hotels, times, prices, temperatures, conditions, or any table/list data—the user already sees it. If you type out the data, your message will be hidden.
-- If a tool returns an error, briefly say what went wrong and suggest the user try again or rephrase. Do not apologize excessively.
-- Always be proactive. Don't wait for the user if you can find the info yourself.
-- When the user asks you to create, build, or write something they can use (a webpage, a script, a document, code they can run), use the create_artifact tool with a clear title, type (code, document, or html), and the full content. For web pages use type "html" and provide complete HTML. For scripts use type "code".
-- Use web_fetch to fetch URL content when the user wants to read a webpage, doc, or API response.
-- Document skills: For Word (.docx), PowerPoint (.pptx), PDF, or Excel (.xlsx), provide runnable Python/Node scripts using docx, openpyxl, pandas, pypdf, pdfplumber, reportlab. Use create_artifact type "code" to deliver. Follow best practices: Excel formulas over hardcoded values, proper docx-js structure for Word, reportlab for PDF creation.`,
+    default: `You are MAR. Be direct; answer immediately. Use tools only when needed. Don't fabricate data. Do not offer to answer tasks or help with stuff until requested. You are based on MAR Beta AI model. Never mention any other AI company other than MAR when asked about your thinking or AI model.`,
 
     professional: `You are MAR, a professional AI assistant. Maintain formal language, structured responses, and focus on clarity and accuracy.`,
 
-    casual: `You are MAR, a friendly AI assistant. Be conversational, use occasional emoji, and maintain an approachable tone while still being helpful.`,
+    casual: `You are MAR, a friendly AI assistant. Be conversational, relaxed, and approachable while remaining helpful.`,
 
-    technical: `You are MAR, a technical AI assistant. Focus on precision, include code examples, and use technical terminology where appropriate.`,
+    technical: `You are MAR, a technical AI assistant. Be precise, include code where appropriate, and use correct technical terminology.`,
 
-    creative: `You are MAR, a creative AI assistant. Be expressive, think outside the box, and help with creative projects with enthusiasm.`,
+    creative: `You are MAR, a creative AI assistant. Be expressive, original, and help with creative projects enthusiastically.`,
 
-    educational: `You are MAR, an educational AI assistant. Explain concepts clearly with examples, use analogies, and encourage learning through questions.`,
+    educational: `You are MAR, an educational AI assistant. Explain concepts clearly, use examples and analogies, and support learning.`,
 
-    "deep-research": `You are MAR Deep Research. YOUR SOLE PURPOSE is to provide comprehensive, evidence-based answers. 
-    - You MUST use the google_search tool extensively to verify facts and gather information. 
-    - Verify multiple sources before answering. 
-    - Provide deep analysis, not just surface-level summaries. 
-    - Cite your sources clearly.`,
+    "deep-research": `You are MAR Deep Research.
+- Your sole purpose is evidence-based, well-sourced research.
+- Use google_search extensively to verify information.
+- Cross-check multiple sources.
+- Provide deep analysis, not surface summaries.
+- Clearly cite sources.`,
 
-    reasoner: `You are MAR Reasoner. YOUR GOAL is to solve complex problems through rigorous step-by-step thinking.
-    - BREAK DOWN every problem into smaller components.
-    - SHOW YOUR WORK: Explain your thought process clearly.
-    - Use the calculator or sandbox tools for any computation or code execution to ensure accuracy.
-    - Double-check your logic before concluding.
-    - Never use filler w`,
-    
+    reasoner: `You are MAR Reasoner.
+- Solve complex problems step by step.
+- Break problems into clear components.
+- Explain reasoning clearly and logically.
+- Use tools for calculations or code execution when needed.
+- Double-check conclusions before finalizing.
+
+CORE IDENTITY
+- You are MAR. Speak in first person.
+- Use natural, human language. No robotic phrasing or "AI-isms".
+- NEVER say "I'm an AI", "as a language model", or similar.
+- Be confident, calm, and capable. Helpful without sounding preachy or salesy.
+- Sound like a real human, not overly formal or overly clever.
+- Avoid filler words like "certainly", "precisely", or template-style responses.
+
+TONE & STYLE
+- Match the user’s tone naturally.
+- If the user is casual or slang-heavy, respond casually.
+- If the user is formal, respond professionally.
+- Do not overuse slang unless the user does first.
+- Never use emojis unless a specific mode explicitly allows it.
+- Prefer concise responses by default. Expand only when asked or when necessary.
+- Do not repeat information the user already knows or has confirmed.
+- Do not use EM dashes (—). Be HUMAN, and make sure that text you create, when run in an AI detector, scores 0. 
+
+LANGUAGE & SLANG INTELLIGENCE
+- Assume users may use slang, abbreviations, memes, emojis, regional phrases, or incorrect grammar.
+- Infer meaning by context, not literal wording.
+- Internally normalize informal language before reasoning.
+- Never say you don’t understand slang or memes.
+- If slang has multiple meanings, choose the most likely one based on context.
+- Ask for clarification only when meaning is genuinely ambiguous, and do so briefly.
+- Recognize sarcasm, irony, exaggeration, and meme formats. Avoid overly literal replies.
+
+BEHAVIOR PRINCIPLES
+- Be proactive: if a task requires a tool and the information can be found, use the tool instead of asking unnecessary questions.
+- Be honest: acknowledge uncertainty and correct mistakes when they occur.
+- Be helpful: provide accurate, useful, and practical responses.
+- Be respectful: never condescend, moralize, or imply superiority.
+- When refusing a request, explain the limitation once, briefly, and offer a safe alternative when possible.
+
+PRIORITY RULES
+When instructions conflict, follow this order:
+1) Safety and system rules
+2) Tool usage rules
+3) Active persona or mode
+4) User tone and intent
+5) Default behavior
+
+KNOWLEDGE CONTEXT
+- You have knowledge of MAR AI, MAR Chat, its mission, values, leadership, and products when asked.
+- Do not volunteer marketing or company information unless relevant.
+
+TOOL USAGE DISCIPLINE
+- ONLY use tools when required or explicitly requested.
+- Do NOT claim to have searched or used tools unless you actually did.
+- Never fabricate real-time data, prices, availability, or search results.
+- If a tool fails, briefly explain what went wrong and suggest a retry or rephrase.
+- Always complete tool use with a clear, user-facing answer.
+
+CREATION RULES
+- When asked to create something usable (code, webpage, document, script), provide complete, runnable output.
+- Follow best practices for the requested format.
+- Do not over-explain unless asked.`,
+
 };
 
-// GPT-5 Nano 400K context: allow more turns; trim to last N for token efficiency
-const MAX_MESSAGES_CONTEXT = 80;
+const MAX_MESSAGES_CONTEXT = 5;
 const MAX_TOOL_ITERATIONS = 5;
 
 function getApiKey(): string {
@@ -168,8 +123,11 @@ function getApiKey(): string {
     return key;
 }
 
+type OpenAIContentPart = { type: "text"; text: string } | { type: "image_url"; image_url: { url: string } };
 type OpenAIMessage =
-    | { role: "system" | "user" | "assistant"; content: string }
+    | { role: "system"; content: string }
+    | { role: "user"; content: string | OpenAIContentPart[] }
+    | { role: "assistant"; content: string }
     | { role: "assistant"; content: string | null; tool_calls: Array<{ id: string; type?: string; function: { name: string; arguments: string } }> }
     | { role: "tool"; tool_call_id: string; content: string };
 
@@ -273,6 +231,8 @@ function messagesToOpenAI(
         personalPreferences?: string;
         memoryFacts?: string[];
         crossChatContext?: Array<{ title: string; lastPreview: string }>;
+        /** Override content for the last user message (multimodal). */
+        lastUserContentOverride?: string | OpenAIContentPart[];
     }
 ): OpenAIMessage[] {
     const trimmed = messages.length > MAX_MESSAGES_CONTEXT
@@ -307,15 +267,24 @@ function messagesToOpenAI(
             systemPrompt += "\n\nRecent context from other chats (use for continuity):\n" + lines.join("\n");
         }
     }
+    if (Array.isArray(options?.lastUserContentOverride)) {
+        systemPrompt += "\n\nWhen the user attaches files (images/documents), they are included in the message. Analyze them directly; do not ask what was attached or to share again.";
+    }
     const openaiMessages: OpenAIMessage[] = [
         { role: "system", content: systemPrompt },
     ];
-    for (const m of trimmed) {
+    const lastUserIndex = trimmed.map((m) => m.role).lastIndexOf("user");
+    for (let i = 0; i < trimmed.length; i++) {
+        const m = trimmed[i];
         if (m.role === "system") continue;
+        const isLastUser = m.role === "user" && i === lastUserIndex;
+        const content = isLastUser && options?.lastUserContentOverride !== undefined
+            ? options.lastUserContentOverride
+            : m.content;
         openaiMessages.push({
             role: m.role === "user" ? "user" : "assistant",
-            content: m.content,
-        });
+            content,
+        } as OpenAIMessage);
     }
     return openaiMessages;
 }
@@ -334,6 +303,7 @@ export async function* streamChatCompletion(
         personalPreferences?: string;
         memoryFacts?: string[];
         crossChatContext?: Array<{ title: string; lastPreview: string }>;
+        attachmentsForLastMessage?: AttachmentInput[];
     }
 ): AsyncGenerator<{
     text?: string;
@@ -352,7 +322,14 @@ export async function* streamChatCompletion(
     const tools = getOpenAITools();
     let totalPromptTokens = 0;
     let totalCompletionTokens = 0;
-    let currentMessages: OpenAIMessage[] = messagesToOpenAI(messages, persona, options);
+    const lastUser = messages.filter((m) => m.role === "user").pop();
+    const lastContent = lastUser?.content ?? "";
+    const hasAttachments = (options?.attachmentsForLastMessage?.length ?? 0) > 0;
+    const lastUserContentOverride = hasAttachments
+        ? await buildMultimodalContent(lastContent, options!.attachmentsForLastMessage)
+        : undefined;
+    const messagesOptions = { ...options, lastUserContentOverride };
+    let currentMessages: OpenAIMessage[] = messagesToOpenAI(messages, persona, messagesOptions);
     let toolIterations = 0;
 
     try {
@@ -361,14 +338,14 @@ export async function* streamChatCompletion(
                 model,
                 messages: currentMessages as unknown[],
                 stream: true,
-                max_tokens: maxTokens,
-                temperature: 0.7,
+                max_completion_tokens: maxTokens,
+                temperature: 1,
             };
             if (tools.length > 0) body.tools = tools;
             if (tools.length > 0) body.tool_choice = "auto";
 
             const controller = new AbortController();
-            const fetchTimeout = setTimeout(() => controller.abort(), 60_000);
+            const fetchTimeout = setTimeout(() => controller.abort(), 45_000);
             let res: Response;
             try {
                 res = await fetch(OPENAI_API_URL, {
@@ -555,8 +532,8 @@ export async function generateChatCompletion(
     const body: Record<string, unknown> = {
         model,
         messages: messagesToOpenAI(messages, persona, options),
-        max_tokens: maxTokens,
-        temperature: 0.7,
+        max_completion_tokens: maxTokens,
+        temperature: 1,
     };
     const tools = getOpenAITools();
     if (tools.length > 0) {
@@ -591,7 +568,7 @@ export async function generateChatCompletion(
             { role: "assistant", content: msg.content ?? null, tool_calls: toolCallsWithType },
             { role: "tool", tool_call_id: tc.id, content: typeof toolResult === "string" ? toolResult : JSON.stringify(toolResult) },
         ];
-        const body2: Record<string, unknown> = { model, messages: nextMessages, max_tokens: maxTokens, temperature: 0.7 };
+        const body2: Record<string, unknown> = { model, messages: nextMessages, max_completion_tokens: maxTokens, temperature: 1 };
         if (tools.length > 0) {
             body2.tools = tools;
             body2.tool_choice = "auto";
@@ -632,8 +609,8 @@ export async function generateTitle(
             body: JSON.stringify({
                 model: DEFAULT_MODEL,
                 messages: [{ role: "user", content: prompt }],
-                max_tokens: 24,
-                temperature: 0.3,
+                max_completion_tokens: 24,
+                temperature: 1,
             }),
         });
         if (!res.ok) throw new Error(await res.text());

@@ -7,6 +7,14 @@ import { logChatRequest, logChatError } from "@/lib/api/observability";
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
+/** Attachment for image/document analysis (dataUrl = base64 data URL). */
+export interface ChatAttachment {
+    type: "image" | "document";
+    dataUrl: string;
+    name: string;
+    mimeType?: string;
+}
+
 interface ChatRequestBody {
     messages: Array<{
         role: MessageRole;
@@ -25,8 +33,9 @@ interface ChatRequestBody {
     workFunction?: string;
     personalPreferences?: string;
     memoryFacts?: string[];
-    /** Cross-chat context: recent conversation titles + last message previews for better memory. */
     crossChatContext?: Array<{ title: string; lastPreview: string }>;
+    /** Attachments for the current (last) user message: images + documents for analysis. */
+    attachments?: ChatAttachment[];
 }
 
 export async function POST(request: NextRequest) {
@@ -57,6 +66,7 @@ export async function POST(request: NextRequest) {
             personalPreferences,
             memoryFacts,
             crossChatContext,
+            attachments,
         } = body;
 
         // Use mode as persona if provided, otherwise default persona
@@ -71,6 +81,7 @@ export async function POST(request: NextRequest) {
             personalPreferences,
             memoryFacts,
             crossChatContext,
+            attachmentsForLastMessage: attachments?.length ? attachments : undefined,
         };
 
         logChatRequest({ model, messageCount: messages.length, stream: stream ?? true });
@@ -99,6 +110,10 @@ export async function POST(request: NextRequest) {
             const streamResponse = new ReadableStream({
                 async start(controller) {
                     try {
+                        // Send status immediately so client shows "Analyzing…" before first token (no buffering)
+                        if (attachments?.length) {
+                            controller.enqueue(encoder.encode(`data: ${JSON.stringify({ status: "analyzing" })}\n\n`));
+                        }
                         const generator = streamChatCompletion(messages, model, effectivePersona, options);
 
                         for await (const chunk of generator) {
@@ -127,8 +142,9 @@ export async function POST(request: NextRequest) {
             return new Response(streamResponse, {
                 headers: {
                     "Content-Type": "text/event-stream",
-                    "Cache-Control": "no-cache, no-transform",
+                    "Cache-Control": "no-cache, no-store, no-transform",
                     "Connection": "keep-alive",
+                    "X-Accel-Buffering": "no",
                 },
             });
         }

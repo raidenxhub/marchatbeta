@@ -47,7 +47,7 @@ import type { Message, ArtifactReference } from "@/lib/types/chat";
 import { useChatStore } from "@/lib/store/chat-store";
 import { REFINE_ACTIONS } from "@/lib/data/quick-chats";
 
-/** Single status label when streaming (no duplicate with ReasoningBlock). */
+/** Single status label when streaming. Used when no explicit streamingStatus is set. */
 function getStreamingStatusLabel(
     reasoning: string,
     hasContent: boolean,
@@ -55,18 +55,19 @@ function getStreamingStatusLabel(
     hotelCount: number,
     hasWeather: boolean
 ): string {
-    if (hasContent) return "Writing";
+    if (hasContent) return "Writing…";
     if (flightCount > 0) return `Found ${flightCount} flight${flightCount !== 1 ? "s" : ""}`;
     if (hotelCount > 0) return `Found ${hotelCount} hotel${hotelCount !== 1 ? "s" : ""}`;
     if (hasWeather) return "Fetched weather";
-    if (/Searching the web/i.test(reasoning)) return "Searching the web";
-    if (/Reading the page|Fetching the webpage/i.test(reasoning)) return "Fetching page";
-    if (/Looking up flights/i.test(reasoning)) return "Searching flights";
-    if (/Searching for hotels/i.test(reasoning)) return "Searching hotels";
-    if (/Fetching weather|Getting current weather/i.test(reasoning)) return "Fetching weather";
-    if (/Creating|Building your/i.test(reasoning)) return "Creating artifact";
-    if (reasoning.trim()) return "Searching";
-    return "Analyzing";
+    if (/Searching the web/i.test(reasoning)) return "Searching…";
+    if (/Reading the page|Fetching the webpage/i.test(reasoning)) return "Fetching page…";
+    if (/Looking up flights/i.test(reasoning)) return "Searching flights…";
+    if (/Searching for hotels/i.test(reasoning)) return "Searching hotels…";
+    if (/Fetching weather|Getting current weather/i.test(reasoning)) return "Fetching weather…";
+    if (/Creating|Building your/i.test(reasoning)) return "Creating…";
+    if (/Running the calculation|crunch those numbers/i.test(reasoning)) return "Calculating…";
+    if (reasoning.trim()) return "Thinking…";
+    return "Analyzing…";
 }
 
 const ARTIFACT_ICONS: Record<string, React.ReactNode> = {
@@ -314,6 +315,7 @@ export const ChatMessage = memo(function ChatMessage({
     };
     const setActiveArtifact = useChatStore((s) => s.setActiveArtifact);
     const setArtifactPanelOpen = useChatStore((s) => s.setArtifactPanelOpen);
+    const streamingStatus = useChatStore((s) => s.streamingStatus);
     const completedStatuses = message.metadata?.completedStatuses ?? [];
 
     return (
@@ -456,15 +458,13 @@ export const ChatMessage = memo(function ChatMessage({
                                         <>
                                             <SparkleLoader size="sm" />
                                             {(() => {
-                                                const label = getStreamingStatusLabel(
+                                                const label = streamingStatus ?? getStreamingStatusLabel(
                                                     message.metadata?.reasoning ?? "",
                                                     !!(message.content && message.content.trim() && message.content !== "\u200b"),
                                                     message.metadata?.flightResults?.flights?.length ?? 0,
                                                     message.metadata?.hotelResults?.hotels?.length ?? 0,
                                                     !!message.metadata?.weatherResults
                                                 );
-                                                const isSimple = label === "Analyzing" && !message.metadata?.reasoning?.trim();
-                                                if (isSimple) return null;
                                                 return (
                                                     <TextShimmer duration={1.5} spread={1} className="text-sm font-medium">
                                                         {label}

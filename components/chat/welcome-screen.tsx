@@ -63,7 +63,7 @@ function getWelcomeSubtitle(visitCount: number): string | null {
     const day = new Date().getDay();
     const isWeekend = day === 0 || day === 6;
 
-    if (visitCount > 30) return "What can I help with this time?";
+    if (visitCount > 30) return null;
     if (visitCount > 15) return "Pick up where you left off.";
     if (visitCount > 5) return "How can I help?";
     if (visitCount > 1) return null;
@@ -138,7 +138,7 @@ export function WelcomeScreen({
                             </div>
                             <p className="text-sm text-[#c1c0b5]/60 max-w-lg text-center">
                                 Incognito chats aren&apos;t saved to history or used to train models.{" "}
-                                <a href="#" className="text-[#c1c0b5]/70 hover:text-[#c1c0b5] hover:underline">
+                                <a href="https://gomarai.com/privacy" className="text-[#c1c0b5]/70 hover:text-[#c1c0b5] hover:underline">
                                     Learn more about how your data is used.
                                 </a>
                             </p>
@@ -154,6 +154,12 @@ export function WelcomeScreen({
                                     {subtitle}
                                 </p>
                             )}
+                            <p className="text-lg md:text-xl text-[#c1c0b5]/80 font-medium mt-2">
+                                What can I help with?
+                            </p>
+                            <p className="text-sm text-[#c1c0b5]/50 mt-1">
+                                Chat with MAR
+                            </p>
                         </div>
                     )}
                 </motion.div>
@@ -177,6 +183,20 @@ export function WelcomeScreen({
                 >
                     <QuickChats onSelectPrompt={onSelectPrompt} />
                 </motion.div>
+
+                {/* Footer: terms, privacy, help, report */}
+                <footer className="mt-8 flex flex-col items-center gap-3 max-w-lg text-center">
+                    <p className="text-xs text-[#c1c0b5]/40">
+                        By using MAR you agree to our{" "}
+                        <a href="https://gomarai.com/terms" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#c1c0b5]/60">Terms</a>
+                        {" "}and{" "}
+                        <a href="https://gomarai.com/privacy" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#c1c0b5]/60">Privacy</a>.
+                    </p>
+                    <nav className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-xs text-[#c1c0b5]/40">
+                        <a href="https://gomarai.com/support" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#c1c0b5]/60">Help</a>
+                        <a href="https://gomarai.com/report" target="_blank" rel="noopener noreferrer" className="underline hover:text-[#c1c0b5]/60">Report an issue</a>
+                    </nav>
+                </footer>
             </div>
         </div>
     );

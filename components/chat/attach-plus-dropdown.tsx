@@ -119,7 +119,7 @@ export function AttachPlusDropdown({
             <input
                 type="file"
                 multiple
-                accept="image/*,.pdf,.txt,.md,.doc,.docx"
+                accept="image/*,.pdf,.txt,.md,.doc,.docx,.svg,.csv,.json,.xml,.rtf,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/*"
                 className="hidden"
                 ref={fileInputRef}
                 onChange={(e) => {
@@ -135,6 +135,7 @@ export function AttachPlusDropdown({
                         size="icon"
                         className={cn("shrink-0 rounded-xl text-[#c1c0b5]/50 hover:text-[#c1c0b5] hover:bg-[#262624]", className)}
                         disabled={disabled}
+                        aria-label="Attach files or images"
                     >
                         <Plus className="h-5 w-5" />
                     </Button>

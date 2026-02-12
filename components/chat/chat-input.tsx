@@ -20,8 +20,15 @@ export interface ChatInputRef {
     focus: () => void;
 }
 
+export interface ChatAttachmentPayload {
+    type: "image" | "document";
+    dataUrl: string;
+    name: string;
+    mimeType?: string;
+}
+
 interface ChatInputProps {
-    onSend: (message: string) => void;
+    onSend: (message: string, attachments?: ChatAttachmentPayload[]) => void;
     onStop?: () => void;
     isLoading?: boolean;
     disabled?: boolean;
@@ -37,7 +44,7 @@ const ChatInputInner = forwardRef<ChatInputRef, ChatInputProps>(function ChatInp
         onStop,
         isLoading = false,
         disabled = false,
-        placeholder = "How can I help you today?",
+        placeholder = "What can I help with?",
         compact = false,
         lastUserMessage,
     },
@@ -47,6 +54,15 @@ const ChatInputInner = forwardRef<ChatInputRef, ChatInputProps>(function ChatInp
     const [isFocused, setIsFocused] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const [attachments, setAttachments] = useState<File[]>([]);
+    const [attachmentStatus, setAttachmentStatus] = useState<"idle" | "preparing">("idle");
+
+    const fileToDataUrl = (file: File): Promise<string> =>
+        new Promise((res, rej) => {
+            const r = new FileReader();
+            r.onload = () => res(r.result as string);
+            r.onerror = rej;
+            r.readAsDataURL(file);
+        });
 
     useImperativeHandle(ref, () => ({
         setMessage: (text: string) => {
@@ -67,17 +83,31 @@ const ChatInputInner = forwardRef<ChatInputRef, ChatInputProps>(function ChatInp
         }
     }, [message]);
 
-    const handleSend = () => {
-        if ((message.trim() || attachments.length > 0) && !isLoading && !disabled) {
-            // In a real app, we'd upload files or send as base64
-            // For now, we'll just send the message text
-            onSend(message.trim());
-            setMessage("");
-            setAttachments([]);
-            if (textareaRef.current) {
-                textareaRef.current.style.height = "auto";
+    const handleSend = async () => {
+        if (!(message.trim() || attachments.length > 0) || isLoading || disabled) return;
+        const text = message.trim();
+        if (attachments.length > 0) {
+            setAttachmentStatus("preparing");
+            try {
+                const payloads: ChatAttachmentPayload[] = await Promise.all(
+                    attachments.map(async (file) => {
+                        const dataUrl = await fileToDataUrl(file);
+                        const type = file.type.startsWith("image/") ? "image" : "document";
+                        return { type, dataUrl, name: file.name, mimeType: file.type || undefined };
+                    })
+                );
+                onSend(text, payloads);
+            } catch {
+                toast.error("Failed to read files");
+            } finally {
+                setAttachmentStatus("idle");
             }
+        } else {
+            onSend(text);
         }
+        setMessage("");
+        setAttachments([]);
+        if (textareaRef.current) textareaRef.current.style.height = "auto";
     };
 
     const removeAttachment = (index: number) => {
@@ -132,15 +162,18 @@ const ChatInputInner = forwardRef<ChatInputRef, ChatInputProps>(function ChatInp
                 animate={{ opacity: 1, y: 0 }}
                 className="w-full max-w-3xl mx-auto px-3 sm:px-4"
             >
-                {/* File Previews */}
+                {/* File Previews + status */}
                 <AnimatePresence>
                     {attachments.length > 0 && (
                         <motion.div
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             exit={{ opacity: 0, y: 10 }}
-                            className="flex flex-wrap gap-2 mb-2"
+                            className="flex flex-wrap items-center gap-2 mb-2"
                         >
+                            {attachmentStatus === "preparing" && (
+                                <span className="text-xs text-[#c1c0b5]/70">Preparing…</span>
+                            )}
                             {attachments.map((file, i) => (
                                 <div
                                     key={i}
@@ -149,8 +182,10 @@ const ChatInputInner = forwardRef<ChatInputRef, ChatInputProps>(function ChatInp
                                     <Paperclip className="w-3 h-3 text-[#c1c0b5]/50" />
                                     <span className="truncate max-w-[150px]">{file.name}</span>
                                     <button
+                                        type="button"
                                         onClick={() => removeAttachment(i)}
                                         className="ml-1 text-[#c1c0b5]/40 hover:text-red-400 transition-colors"
+                                        aria-label="Remove attachment"
                                     >
                                         &times;
                                     </button>

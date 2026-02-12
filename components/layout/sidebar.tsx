@@ -473,6 +473,11 @@ export function Sidebar({ isOpen, onToggle, onLoginClick }: SidebarProps) {
                             </button>
                         </div>
 
+                        {/* Chat history – ChatGPT-style section label */}
+                        <div className="shrink-0 px-3 pb-1">
+                            <h2 className="text-xs font-medium text-[#c1c0b5]/50 uppercase tracking-wider">Chat history</h2>
+                        </div>
+
                         {/* Nav: Chats, Projects, Artifacts */}
                         <nav className="shrink-0 px-3">
                             <div className="flex flex-col gap-0.5">
